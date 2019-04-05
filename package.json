@@ -1,0 +1,16 @@
+{
+  "name": "jest-plugin-must-assert",
+  "version": "0.0.1",
+  "description": "Jest plugin for async tests",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "jest",
+    "test",
+    "async"
+  ],
+  "author": "Arthur Buldauskas",
+  "license": "MIT"
+}
