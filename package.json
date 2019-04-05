@@ -12,5 +12,16 @@
     "async"
   ],
   "author": "Arthur Buldauskas",
-  "license": "MIT"
+  "license": "MIT",
+  "prettier": {
+    "quotes": "single",
+    "trailingComma": "es5"
+  },
+  "devDependencies": {
+    "execa": "^1.0.0",
+    "jest": "^24.7.1",
+    "jest-cli": "^24.7.1",
+    "meow": "^5.0.0",
+    "prettier": "^1.16.4"
+  }
 }
