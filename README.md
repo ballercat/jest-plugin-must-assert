@@ -3,6 +3,10 @@
 A plugin extending the default Jest behavior to fail any tests which do not
 perform a runtime assertion.
 
+## WARNING
+
+The plugin is in a working state, but is under construction :construction:
+
 ## Install
 
 `npm i -D jest-plugin-must-assert`
