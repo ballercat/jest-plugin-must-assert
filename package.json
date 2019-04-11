@@ -4,7 +4,7 @@
   "description": "Jest plugin for async tests",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "keywords": [
     "jest",
@@ -12,5 +12,24 @@
     "async"
   ],
   "author": "Arthur Buldauskas",
-  "license": "MIT"
+  "license": "MIT",
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testRegex": "src/__tests__/.*|(\\.|/)(test|spec)\\.[jt]sx?$"
+  },
+  "devDependencies": {
+    "execa": "^1.0.0",
+    "jest": "^24.7.1",
+    "jest-cli": "^24.7.1",
+    "meow": "^5.0.0",
+    "prettier": "^1.16.4",
+    "strip-ansi": "^5.2.0"
+  },
+  "dependencies": {
+    "zone.js": "^0.9.0"
+  }
 }
