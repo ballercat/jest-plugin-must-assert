@@ -1,7 +1,11 @@
-const runCLI = require("jest-cli").runCLI;
+/**
+ * This script is used to run the e2e folder tests directly to get realtime
+ * feedback.
+ */
+const runCLI = require('jest-cli').runCLI;
 
 const options = {
-  projects: ["./examples"],
+  projects: ['./e2e/failing'],
   watch: true,
 };
 
