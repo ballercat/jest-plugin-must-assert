@@ -1,4 +1,14 @@
+const consoleMethods = Object.entries(global.console);
+const restoreConsole = () =>
+  consoleMethods.forEach(([key, value]) => {
+    global.console[key] = value;
+  });
+
 require('zone.js');
+
+// NOTE: zone.js patches console methods, avoid that.
+restoreConsole();
+
 // Zone sets itself as a global...
 const Zone = global.Zone;
 
