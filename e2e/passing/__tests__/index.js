@@ -33,6 +33,13 @@ test('done callback tests should pass', done => {
   });
 });
 
+test('.thens are chained properly', () => {
+  // Test that our use of zones does not break promise chaining
+  return Promise.resolve(1)
+    .then(v => v + 2)
+    .then(v => expect(v).toBe(3));
+});
+
 describe('it() should behave the same as test()', () => {
   it('basic tests should pass', () => {
     expect(1 + 2).toBe(3);

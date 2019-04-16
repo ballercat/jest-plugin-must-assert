@@ -11,22 +11,51 @@ restoreConsole();
 
 // Zone sets itself as a global...
 const Zone = global.Zone;
+let currentZone = null;
+let uniqueIdentifier = 0;
+const uuid = () => ++uniqueIdentifier;
 
 const testHasNoExplicitAssertionChecks = (state = expect.getState()) =>
   typeof state.expectedAssertionsNumber !== 'number' &&
   !state.isExpectingAssertions;
 
-let currentZone = null;
-let uniqueIdentifier = 0;
-const uuid = () => ++uniqueIdentifier;
+const exitZone = () => (currentZone = null);
+const enterZone = (callback, name, hasDoneCallback) => {
+  const id = uuid();
+  const zone = Zone.root.fork({
+    name,
+    properties: {
+      id,
+    },
+    onHandleError(delegate, current, target, e) {
+      return false;
+    },
+    onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
+      if (current.get('id') !== currentZone) {
+        console.warn(
+          `Test "${current.name}" is attempting to invoke a ${task.type}(${
+            task.source
+          }) after test completion. Ignoring`
+        );
+        return;
+      }
 
-const wrapTest = fn => {
+      return delegate.invokeTask(target, task, applyThis, applyArgs);
+    },
+  });
+
+  currentZone = id;
+
+  return zone.wrap(hasDoneCallback ? callback : done => callback(done));
+};
+
+const wrapTest = (fn, name) => {
   let testMustAssert;
   const hasDoneCallback = fn.length > 0;
 
   if (!hasDoneCallback) {
     return () => {
-      const result = fn();
+      const result = enterZone(fn, name, false)();
 
       if (testHasNoExplicitAssertionChecks()) {
         expect.hasAssertions();
@@ -37,26 +66,23 @@ const wrapTest = fn => {
         result != null &&
         typeof result.then === 'function'
       ) {
-        return result.then(
-          () => (currentZone = null),
-          e => {
-            currentZone = null;
-            throw e;
-          }
-        );
+        return result.then(exitZone, e => {
+          exitZone();
+          throw e;
+        });
       }
 
-      currentZone = null;
+      exitZone();
       return result;
     };
   }
 
   return (doneOriginal, ...args) => {
     const done = () => {
-      currenZone = null;
+      exitZone();
       doneOriginal();
     };
-    const result = fn(done, ...args);
+    const result = enterZone(fn, name, true)(done, ...args);
 
     if (testHasNoExplicitAssertionChecks()) {
       expect.hasAssertions();
@@ -68,43 +94,7 @@ const wrapTest = fn => {
 
 function enhanceJestImplementationWithAssertionCheck(jestTest) {
   return function ehanchedJestMehod(name, fn, timeout) {
-    const id = uuid();
-    const zone = Zone.root.fork({
-      name,
-      properties: {
-        id,
-      },
-      onInvoke(
-        delegate,
-        current,
-        target,
-        callback,
-        applyThis,
-        applyArgs,
-        source
-      ) {
-        currentZone = id;
-        delegate.invoke(target, callback, applyThis, applyArgs, source);
-      },
-      onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
-        if (current.get('id') !== currentZone) {
-          console.warn(
-            `Test "${current.name}" is attempting to invoke a ${task.type}(${
-              task.source
-            }) after test completion. Ignoring`
-          );
-        } else {
-          delegate.invokeTask(target, task, applyThis, applyArgs);
-        }
-      },
-    });
-    const hasDoneCallback = fn.length > 0;
-    const wrapper = zone.wrap(wrapTest(fn));
-    return jestTest(
-      name,
-      hasDoneCallback ? done => wrapper(done) : wrapper,
-      timeout
-    );
+    return jestTest(name, wrapTest(fn, name), timeout);
   };
 }
 
