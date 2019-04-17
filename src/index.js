@@ -15,9 +15,17 @@ let currentZone = null;
 let uniqueIdentifier = 0;
 const uuid = () => ++uniqueIdentifier;
 
-const testHasNoExplicitAssertionChecks = (state = expect.getState()) =>
-  typeof state.expectedAssertionsNumber !== 'number' &&
-  !state.isExpectingAssertions;
+const testHasNoExplicitAssertionChecks = () => {
+  // Some misconfigured test (eg overriding expect itself)
+  if (!(typeof expect !== 'undefined' && 'getState' in expect)) {
+    return false;
+  }
+  const state = expect.getState();
+  return (
+    typeof state.expectedAssertionsNumber !== 'number' &&
+    !state.isExpectingAssertions
+  );
+};
 
 const exitZone = () => (currentZone = null);
 const enterZone = (callback, name, hasDoneCallback) => {
