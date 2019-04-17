@@ -1,6 +1,6 @@
 {
   "name": "jest-plugin-must-assert",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Jest plugin for async tests",
   "main": "index.js",
   "scripts": {
