@@ -8,21 +8,21 @@ perform a runtime assertion.
 Asynchronous tests could be challenging to get _right_, particulrary for junior
 developers or Engineers new to async JavaScript. The most common mistake is an async
 test which does not fire any assertions, either due to logic or even syntax errors.
-Static analysis(linters) gets close to pointing out the issues, but is not enough to catch logic mistakes. For this, we require a runtime
-check that _some_ assertion was ran during the test.
+Static analysis(linters) gets close to pointing out the issues, but is not enough to catch logic mistakes.
+For this, we require a runtime check that _some_ assertion was ran during the test.
 
-This "plugin" patches the Jest test API to force tests without any assertions to
-fail. Additi
-
-## WARNING
-
-The plugin is in a working state, but is under construction :construction:
+[Jest, unfortunately, has not "failWithoutAssertions" configuration options, so this plugin aims to remedy that.]()
+The plugin patches Jest API to force tests without any assertions to fail. In addition
+to failing tests without assertions this plugin also patches a bug in Jest which
+leads to [assertions "leaking" accross different tests](https://github.com/facebook/jest/issues/8297).
 
 ## Install
 
 `npm i -D jest-plugin-must-assert`
 
 For default behavior, add the plugin to your setup files.
+
+## Use
 
 ```js
 ...
@@ -65,3 +65,9 @@ setupFilesAfterEnv: [
 ],
 ...
 ```
+
+## Performance
+
+There is some performance implications of using this plugin as it does add a bit of
+overhead, but from testing it's a trivial increase. This plugin has been tested
+within a project with 1600+ test suites and over 10k individual tests, with only a negligble slow-down.
