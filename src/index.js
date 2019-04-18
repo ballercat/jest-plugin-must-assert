@@ -1,128 +1,141 @@
-const consoleMethods = Object.entries(global.console);
-const restoreConsole = () =>
-  consoleMethods.forEach(([key, value]) => {
-    global.console[key] = value;
-  });
+module.exports = patchJestAPI;
 
-require('zone.js');
-
-// NOTE: zone.js patches console methods, avoid that.
-restoreConsole();
-
-// Zone sets itself as a global...
-const Zone = global.Zone;
-let currentZone = null;
-let uniqueIdentifier = 0;
-const uuid = () => ++uniqueIdentifier;
-
-const testHasNoExplicitAssertionChecks = () => {
-  // Some misconfigured test (eg overriding expect itself)
-  if (!(typeof expect !== 'undefined' && 'getState' in expect)) {
+function onInvokeTaskDefault(originZoneId, currentZoneId, log) {
+  if (originZoneId !== currentZoneId) {
+    log(
+      `Test "${current.name}" is attempting to invoke a ${task.type}(${
+        task.source
+      }) after test completion. Ignoring`
+    );
     return false;
   }
-  const state = expect.getState();
-  return (
-    typeof state.expectedAssertionsNumber !== 'number' &&
-    !state.isExpectingAssertions
-  );
-};
+  return true;
+}
 
-const exitZone = () => (currentZone = null);
-const enterZone = (callback, name, hasDoneCallback) => {
-  const id = uuid();
-  const zone = Zone.root.fork({
-    name,
-    properties: {
-      id,
-    },
-    onHandleError(delegate, current, target, e) {
+function patchJestAPI({
+  onInvokeTask = onInvokeTaskDefault,
+  logger = console,
+}) {
+  const consoleMethods = Object.entries(global.console);
+  const restoreConsole = () =>
+    consoleMethods.forEach(([key, value]) => {
+      global.console[key] = value;
+    });
+
+  require('zone.js');
+
+  // NOTE: zone.js patches console methods, avoid that.
+  restoreConsole();
+
+  // Zone sets itself as a global...
+  const Zone = global.Zone;
+  let currentZone = null;
+  let uniqueIdentifier = 0;
+  const uuid = () => ++uniqueIdentifier;
+
+  const testNeedsAssertionCheck = () => {
+    // Some misconfigured test (eg overriding expect itself)
+    if (!(typeof expect !== 'undefined' && 'getState' in expect)) {
       return false;
-    },
-    onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
-      if (current.get('id') !== currentZone) {
-        console.warn(
-          `Test "${current.name}" is attempting to invoke a ${task.type}(${
-            task.source
-          }) after test completion. Ignoring`
-        );
-        return;
-      }
+    }
+    const state = expect.getState();
+    return (
+      typeof state.expectedAssertionsNumber !== 'number' &&
+      !state.isExpectingAssertions
+    );
+  };
 
-      return delegate.invokeTask(target, task, applyThis, applyArgs);
-    },
-  });
+  const exitZone = () => (currentZone = null);
+  const enterZone = (callback, name, hasDoneCallback) => {
+    const id = uuid();
+    const zone = Zone.root.fork({
+      name,
+      properties: {
+        id,
+      },
+      onHandleError(delegate, current, target, e) {
+        return false;
+      },
+      onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
+        if (!onInvokeTask(current.get('id'), currentZone, logger.warn)) {
+          return;
+        }
+        return delegate.invokeTask(target, task, applyThis, applyArgs);
+      },
+    });
 
-  currentZone = id;
+    currentZone = id;
 
-  return zone.wrap(hasDoneCallback ? callback : done => callback(done));
-};
+    return zone.wrap(hasDoneCallback ? callback : done => callback(done));
+  };
 
-const wrapTest = (fn, name) => {
-  let testMustAssert;
-  const hasDoneCallback = fn.length > 0;
+  const wrapTest = (fn, name) => {
+    let testMustAssert;
+    const hasDoneCallback = fn.length > 0;
 
-  if (!hasDoneCallback) {
-    return () => {
-      const result = enterZone(fn, name, false)();
+    if (!hasDoneCallback) {
+      return () => {
+        const result = enterZone(fn, name, false)();
 
-      if (testHasNoExplicitAssertionChecks()) {
+        if (testNeedsAssertionCheck()) {
+          expect.hasAssertions();
+        }
+
+        if (
+          typeof result === 'object' &&
+          result != null &&
+          typeof result.then === 'function'
+        ) {
+          return result.then(exitZone, e => {
+            exitZone();
+            throw e;
+          });
+        }
+
+        exitZone();
+        return result;
+      };
+    }
+
+    return (doneOriginal, ...args) => {
+      const done = () => {
+        exitZone();
+        doneOriginal();
+      };
+      const result = enterZone(fn, name, true)(done, ...args);
+
+      if (testNeedsAssertionCheck()) {
         expect.hasAssertions();
       }
 
-      if (
-        typeof result === 'object' &&
-        result != null &&
-        typeof result.then === 'function'
-      ) {
-        return result.then(exitZone, e => {
-          exitZone();
-          throw e;
-        });
-      }
-
-      exitZone();
       return result;
     };
-  }
+  };
 
-  return (doneOriginal, ...args) => {
-    const done = () => {
-      exitZone();
-      doneOriginal();
+  function enhanceJestImplementationWithAssertionCheck(jestTest) {
+    return function ehanchedJestMehod(name, fn, timeout) {
+      return jestTest(name, wrapTest(fn, name), timeout);
     };
-    const result = enterZone(fn, name, true)(done, ...args);
-
-    if (testHasNoExplicitAssertionChecks()) {
-      expect.hasAssertions();
-    }
-
-    return result;
-  };
-};
-
-function enhanceJestImplementationWithAssertionCheck(jestTest) {
-  return function ehanchedJestMehod(name, fn, timeout) {
-    return jestTest(name, wrapTest(fn, name), timeout);
-  };
-}
-
-// Create the enhanced version of the base test() method
-const enhancedTest = enhanceJestImplementationWithAssertionCheck(global.test);
-
-Object.keys(global.test).forEach(key => {
-  if (
-    typeof global.test[key] === 'function' &&
-    key !== 'each' &&
-    key !== 'skip'
-  ) {
-    enhancedTest[key] = enhanceJestImplementationWithAssertionCheck(
-      global.test[key]
-    );
-  } else {
-    enhancedTest[key] = global.test[key];
   }
-});
 
-global.it = enhancedTest;
-global.fit = enhancedTest;
-global.test = enhancedTest;
+  // Create the enhanced version of the base test() method
+  const enhancedTest = enhanceJestImplementationWithAssertionCheck(global.test);
+
+  Object.keys(global.test).forEach(key => {
+    if (
+      typeof global.test[key] === 'function' &&
+      key !== 'each' &&
+      key !== 'skip'
+    ) {
+      enhancedTest[key] = enhanceJestImplementationWithAssertionCheck(
+        global.test[key]
+      );
+    } else {
+      enhancedTest[key] = global.test[key];
+    }
+  });
+
+  global.it = enhancedTest;
+  global.fit = enhancedTest;
+  global.test = enhancedTest;
+}
