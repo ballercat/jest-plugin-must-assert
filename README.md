@@ -49,6 +49,7 @@ mustAssert({
    * @param {Function} log         The log method (logger.warn)
    *
    * @return {Boolean} true/false for whether or not the task should execute
+   */
   onInvokeTask(originTestId, currentTestId, log) {
     return false;
   }
