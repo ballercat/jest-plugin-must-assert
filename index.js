@@ -1,5 +1,5 @@
-const pathJestAPI = require("./src");
+const patchJestAPI = require('./src');
 
-pathJestAPI({
-  logger: console
+patchJestAPI({
+  logger: console,
 });

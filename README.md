@@ -34,9 +34,9 @@ You may also extend the default behavior with the following, manual configuratio
 
 ```js
 // <rootDir>/must-assert-setup.js
-const mustAssert = require('jest-plugin-must-assert/manual');
+const patchJestAPI = require('jest-plugin-must-assert/manual');
 
-mustAssert({
+patchJestAPI({
   /**
    * Control the task execution during a test. You may log a custom warning message
    * from here, throw an error etc.
@@ -44,15 +44,24 @@ mustAssert({
    * Default: The default behavior is that mismatched testIds result in ignoring of the task
    * and a warning message.
    *
+   * @param {Object} options       Options for the handler (see below)
+   *
+   * Options:
    * @param {Number} originTestId  The unique ID of the test where the task is oginating from
    * @param {Number} currentTestId The unique ID of the currently executing test
-   * @param {Function} log         The log method (logger.warn)
+   * @param {String} testName      The name of the test which triggered this event
+   * @param {String} taskType      The type of task being invoked (micro/macro task)
+   * @param {String} taskSource    The source of the taks ("promise.then", "setTimeout" etc)
+   * @param {Object} logger        The logger object (defaults to console)
    *
    * @return {Boolean} true/false for whether or not the task should execute
    */
   onInvokeTask(originTestId, currentTestId, log) {
     return false;
   }
+  /**
+   * Logger DI. Used by the internal methods to log warnings/errors. Should match console API.
+   */
   logger,
 });
 ```

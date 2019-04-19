@@ -1,11 +1,16 @@
 module.exports = patchJestAPI;
 
-function onInvokeTaskDefault(originZoneId, currentZoneId, log) {
+function onInvokeTaskDefault({
+  originZoneId,
+  currentZoneId,
+  testName,
+  taskType,
+  taskSource,
+  logger,
+}) {
   if (originZoneId !== currentZoneId) {
-    log(
-      `Test "${current.name}" is attempting to invoke a ${task.type}(${
-        task.source
-      }) after test completion. Ignoring`
+    logger.warn(
+      `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. Ignoring`
     );
     return false;
   }
@@ -57,7 +62,16 @@ function patchJestAPI({
         return false;
       },
       onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
-        if (!onInvokeTask(current.get('id'), currentZone, logger.warn)) {
+        if (
+          !onInvokeTask({
+            originZoneId: current.get('id'),
+            currentZoneId: currentZone,
+            testName: name,
+            taskType: task.type,
+            taskSource: task.source,
+            logger: logger,
+          })
+        ) {
           return;
         }
         return delegate.invokeTask(target, task, applyThis, applyArgs);
