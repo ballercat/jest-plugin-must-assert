@@ -56,9 +56,23 @@ patchJestAPI({
    *
    * @return {Boolean} true/false for whether or not the task should execute
    */
-  onInvokeTask(originTestId, currentTestId, log) {
-    return false;
-  }
+  onInvokeTask({
+    originZoneId,
+    currentZoneId,
+    testName,
+    taskType,
+    taskSource,
+    logger,
+  }) {
+    // This is the default implementation of onInvokeTask
+    if (originZoneId !== currentZoneId) {
+      logger.warn(
+        `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. Ignoring`
+      );
+      return false;
+    }
+    return true;
+  },
   /**
    * Logger DI. Used by the internal methods to log warnings/errors. Should match console API.
    */
