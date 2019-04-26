@@ -21,6 +21,7 @@ function onInvokeTaskDefault({
 function patchJestAPI({
   onInvokeTask = onInvokeTaskDefault,
   logger = console,
+  ignoreStack = [],
 }) {
   const consoleMethods = Object.entries(global.console);
   const restoreConsole = () =>
@@ -35,11 +36,9 @@ function patchJestAPI({
 
   const stack = new StackUtils({
     cwd: process.cwd(),
-    internals: StackUtils.nodeInternals().concat([
-      /Zone/,
-      /zone\.js/,
-      /jest-plugin-must-assert/,
-    ]),
+    internals: StackUtils.nodeInternals()
+      .concat([/Zone/, /zone\.js/, /node_modules/])
+      .concat(ignoreStack),
   });
   // Zone sets itself as a global...
   const Zone = global.Zone;
@@ -179,6 +178,6 @@ function patchJestAPI({
   });
 
   global.it = enhancedTest;
-  global.fit = enhancedTest;
+  global.fit = enhancedTest.only;
   global.test = enhancedTest;
 }
