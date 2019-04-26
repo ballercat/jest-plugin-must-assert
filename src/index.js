@@ -1,4 +1,7 @@
+const StackUtils = require('stack-utils');
 module.exports = patchJestAPI;
+
+const EXPOSE_ERROR = Symbol('EXPOSE_ERROR');
 
 function onInvokeTaskDefault({
   originZoneId,
@@ -6,13 +9,11 @@ function onInvokeTaskDefault({
   testName,
   taskType,
   taskSource,
-  logger,
 }) {
   if (originZoneId !== currentZoneId) {
-    logger.warn(
-      `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. Ignoring`
+    throw new Error(
+      `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. See stack-trace for details.`
     );
-    return false;
   }
   return true;
 }
@@ -28,10 +29,18 @@ function patchJestAPI({
     });
 
   require('zone.js');
-
+  require('zone.js/dist/long-stack-trace-zone');
   // NOTE: zone.js patches console methods, avoid that.
   restoreConsole();
 
+  const stack = new StackUtils({
+    cwd: process.cwd(),
+    internals: StackUtils.nodeInternals().concat([
+      /Zone/,
+      /zone\.js/,
+      /jest-plugin-must-assert/,
+    ]),
+  });
   // Zone sets itself as a global...
   const Zone = global.Zone;
   let currentZone = null;
@@ -53,30 +62,50 @@ function patchJestAPI({
   const exitZone = () => (currentZone = null);
   const enterZone = (callback, name, hasDoneCallback) => {
     const id = uuid();
-    const zone = Zone.root.fork({
-      name,
-      properties: {
-        id,
-      },
-      onHandleError(delegate, current, target, e) {
-        return false;
-      },
-      onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
-        if (
-          !onInvokeTask({
-            originZoneId: current.get('id'),
-            currentZoneId: currentZone,
-            testName: name,
-            taskType: task.type,
-            taskSource: task.source,
-            logger: logger,
-          })
-        ) {
-          return;
-        }
-        return delegate.invokeTask(target, task, applyThis, applyArgs);
-      },
-    });
+    const zone = Zone.root
+      .fork({
+        name,
+        properties: {
+          id,
+        },
+        onHandleError(delegate, current, target, e) {
+          if (e && e[EXPOSE_ERROR]) {
+            logger.warn(`${e.message}\n\n${stack.clean(e.stack)}`);
+          }
+          return false;
+        },
+        onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
+          let error;
+          let result = true;
+          try {
+            result = onInvokeTask({
+              originZoneId: current.get('id'),
+              currentZoneId: currentZone,
+              testName: name,
+              taskType: task.type,
+              taskSource: task.source,
+              logger: logger,
+            });
+          } catch (e) {
+            error = e;
+          }
+
+          if (error) {
+            error[EXPOSE_ERROR] = true;
+            error.task = task;
+            throw error;
+          }
+
+          if (!result) {
+            return;
+          }
+
+          return delegate.invokeTask(target, task, applyThis, applyArgs);
+        },
+      })
+      // We fork from the special stack-trace zone so that there is a trail leading
+      // back to the origin of the ignored tasks
+      .fork(Zone.longStackTraceZoneSpec);
 
     currentZone = id;
 
