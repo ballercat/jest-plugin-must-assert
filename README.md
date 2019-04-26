@@ -54,6 +54,9 @@ patchJestAPI({
    * @param {String} taskSource    The source of the taks ("promise.then", "setTimeout" etc)
    * @param {Object} logger        The logger object (defaults to console)
    *
+   * @throws {Error} Default: throws. This function _may_ throw an error instead of logging it if
+   *                 you would like a stack trace back to the origin of the task being ignored.
+   *
    * @return {Boolean} true/false for whether or not the task should execute
    */
   onInvokeTask({
@@ -62,14 +65,13 @@ patchJestAPI({
     testName,
     taskType,
     taskSource,
-    logger,
   }) {
-    // This is the default implementation of onInvokeTask
+    // This is the default implementation of onInvokeTask. The error thrown will
+    // be displayed as a logger.warn with a cleaned up stack trace.
     if (originZoneId !== currentZoneId) {
-      logger.warn(
+      throw new Error(
         `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. Ignoring`
       );
-      return false;
     }
     return true;
   },
