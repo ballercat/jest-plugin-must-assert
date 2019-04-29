@@ -1,7 +1,23 @@
 const StackUtils = require('stack-utils');
 module.exports = patchJestAPI;
 
+const creationTrace = '__creationTrace__';
 const EXPOSE_ERROR = Symbol('EXPOSE_ERROR');
+
+function TEST_COMPLETE(name) {
+  const key = `FINISHED TEST: ${name}`;
+  const o = {
+    [key]() {
+      return {
+        finishLine: true,
+        error: new Error('STACKTRACE TRACKING'),
+        timestamp: new Date(),
+      };
+    },
+  };
+
+  return o[key];
+}
 
 function onInvokeTaskDefault({
   originZoneId,
@@ -58,24 +74,48 @@ function patchJestAPI({
     );
   };
 
-  const exitZone = () => (currentZone = null);
+  const exitZone = (from, name) => {
+    if (from && from.get('state') && !from.get('state').finished) {
+      from.get('state').finished = TEST_COMPLETE(name)();
+    }
+    currentZone = null;
+  };
   const enterZone = (callback, name, hasDoneCallback) => {
     const id = uuid();
     const zone = Zone.root
       .fork({
         name,
         properties: {
+          state: {
+            finished: null,
+          },
           id,
         },
         onHandleError(delegate, current, target, e) {
           if (e && e[EXPOSE_ERROR]) {
             logger.warn(`${e.message}\n\n${stack.clean(e.stack)}`);
+          } else {
+            console.log(e.message);
           }
           return false;
+        },
+        onScheduleTask(parentZoneDelegate, currentZone, targetZone, task) {
+          if (targetZone.get('state').finished) {
+            task.data[creationTrace] = (task.data[creationTrace] || []).concat([
+              targetZone.get('state').finished,
+            ]);
+          }
+          return parentZoneDelegate.scheduleTask(targetZone, task);
         },
         onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
           let error;
           let result = true;
+          const trace = task.data[creationTrace] || [];
+          if (target.get('state').finished && !trace.find(t => t.finishLine)) {
+            task.data[creationTrace] = trace.concat([
+              target.get('state').finished,
+            ]);
+          }
           try {
             result = onInvokeTask({
               originZoneId: current.get('id'),
@@ -108,7 +148,10 @@ function patchJestAPI({
 
     currentZone = id;
 
-    return zone.wrap(hasDoneCallback ? callback : done => callback(done));
+    return [
+      zone.wrap(hasDoneCallback ? callback : done => callback(done)),
+      zone,
+    ];
   };
 
   const wrapTest = (fn, name) => {
@@ -117,7 +160,8 @@ function patchJestAPI({
 
     if (!hasDoneCallback) {
       return () => {
-        const result = enterZone(fn, name, false)();
+        const [zoneFN, zone] = enterZone(fn, name, false);
+        const result = zoneFN();
 
         if (testNeedsAssertionCheck()) {
           expect.hasAssertions();
@@ -129,22 +173,24 @@ function patchJestAPI({
           typeof result.then === 'function'
         ) {
           return result.then(exitZone, e => {
-            exitZone();
+            exitZone(zone, name);
             throw e;
           });
         }
 
-        exitZone();
+        exitZone(zone, name);
         return result;
       };
     }
 
     return (doneOriginal, ...args) => {
+      const [zoneFN, zone] = enterZone(fn, name, false);
       const done = () => {
-        exitZone();
+        exitZone(zone, name);
         doneOriginal();
       };
-      const result = enterZone(fn, name, true)(done, ...args);
+      const result = zoneFN(done, ...args);
+      // const result = enterZone(fn, name, true)(done, ...args);
 
       if (testNeedsAssertionCheck()) {
         expect.hasAssertions();
