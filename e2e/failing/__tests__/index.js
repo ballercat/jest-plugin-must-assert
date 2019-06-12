@@ -5,6 +5,10 @@
 
 test('no assertions, no code', () => {});
 
+test('synchronous failure', () => {
+  expect(true).toBe(false);
+});
+
 test('missed runtime assertion', () => {
   const unused = () => expect(true).toBe(true);
 });
@@ -50,6 +54,10 @@ test('assertions after done() callback (jest bugfix)', done => {
 describe('it() blocks work as test()', () => {
   it('missed runtime assertion', () => {
     const unused = () => expect(true).toBe(true);
+  });
+
+  it('synchronous failure', () => {
+    expect(true).toBe(false);
   });
 
   // https://github.com/facebook/jest/issues/8297
