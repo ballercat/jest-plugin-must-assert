@@ -1,5 +1,8 @@
 const runJest = require('../runJest');
 
+// A generous timeout as the e2e failing tests timeout in some cases (as intended)
+jest.setTimeout(8000);
+
 test('failing tests', async () => {
   const results = await runJest('e2e/failing');
 
@@ -21,4 +24,3 @@ test('passing tests', async () => {
   // All tests that were executed should have passed
   expect(results.json.numPassedTests).toBe(totalTestsExecuted);
 });
-

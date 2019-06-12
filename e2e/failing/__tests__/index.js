@@ -51,6 +51,14 @@ test('assertions after done() callback (jest bugfix)', done => {
   });
 });
 
+test('assertions failing in setTimeout', done => {
+  setTimeout(() => {
+    expect(true).toBe(false);
+    // done cannot be called here due to a throw just above it
+    done();
+  });
+});
+
 describe('it() blocks work as test()', () => {
   it('missed runtime assertion', () => {
     const unused = () => expect(true).toBe(true);
