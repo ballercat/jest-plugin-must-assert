@@ -70,8 +70,9 @@ function patchJestAPI({
         onHandleError(delegate, current, target, e) {
           if (e && e[EXPOSE_ERROR]) {
             logger.warn(`${e.message}\n\n${stack.clean(e.stack)}`);
+            return false;
           }
-          return false;
+          throw e;
         },
         onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
           let error;
