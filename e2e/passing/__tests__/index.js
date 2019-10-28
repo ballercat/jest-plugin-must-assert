@@ -40,6 +40,8 @@ test('.thens are chained properly', () => {
     .then(v => expect(v).toBe(3));
 });
 
+test.todo('- todos should work');
+
 describe('it() should behave the same as test()', () => {
   it('basic tests should pass', () => {
     expect(1 + 2).toBe(3);
@@ -67,4 +69,6 @@ describe('it() should behave the same as test()', () => {
       done();
     });
   });
+
+  it.todo('- it todos should work');
 });
