@@ -164,12 +164,10 @@ function patchJestAPI({
   // Create the enhanced version of the base test() method
   const enhancedTest = enhanceJestImplementationWithAssertionCheck(global.test);
 
+  const donotpatch = ['each', 'skip', 'todo'];
+
   Object.keys(global.test).forEach(key => {
-    if (
-      typeof global.test[key] === 'function' &&
-      key !== 'each' &&
-      key !== 'skip'
-    ) {
+    if (typeof global.test[key] === 'function' && !donotpatch.includes(key)) {
       enhancedTest[key] = enhanceJestImplementationWithAssertionCheck(
         global.test[key]
       );
