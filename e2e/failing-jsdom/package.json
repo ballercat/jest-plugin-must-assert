@@ -1,0 +1,7 @@
+{
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["../../jsdom"],
+    "testRunner": "jest-circus/runner"
+  }
+}

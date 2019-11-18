@@ -22,13 +22,40 @@ leads to [assertions "leaking" accross different tests](https://github.com/faceb
 
 For default behavior, add the plugin to your setup files.
 
+## Supported Jest Environments
+
+- `jest-plugin-must-assert` - Default supported environment, `node`
+- `jest-plugin-must-assert/jsdom` - JSDOM environment support. Necessary for
+  mocking window task functions like `setTimeout` when using `jest-environment-jsdom`.
+  Useful for React tests.
+
 ## Use
+
+### For a specific test file
+
+You may import the plugin into any test file you need additional safeguard for async logic.
+
+```js
+import 'jest-plugin-must-assert';
+
+test('some logic', () => {
+  setTimeout(() => expect(1).toBe(2)); // will be caught by the plugin
+  ...
+});
+```
+
+### For entire test suite
+
+Alternatively, you can enable the plugin for an entire test suite by adding it
+to your jest configuration.
 
 ```js
 ...
 setupFilesAfterEnv: ['jest-plugin-must-assert'],
 ...
 ```
+
+### Manual configuration
 
 You may also extend the default behavior with the following, manual configuration.
 
