@@ -4,8 +4,15 @@
  */
 const runCLI = require('jest-cli').runCLI;
 
+const [env = 'node'] = process.argv.slice(2);
+const projectmap = {
+  node: './e2e/failing',
+  jsdom: './e2e/failing-jsdom',
+  passing: './e2e/passing',
+};
+
 const options = {
-  projects: ['./e2e/failing'],
+  projects: [projectmap[env]],
   watch: true,
 };
 
