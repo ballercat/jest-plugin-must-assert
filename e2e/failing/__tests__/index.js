@@ -2,6 +2,16 @@
  * All of the tests should fail, due to the plugin inserting hasAssertions()
  * before every test is executed
  */
+const wait = require('wait-for-expect');
+
+test('this', () => {
+  Promise.resolve().then(() => {
+    throw new Error('oops');
+  });
+  return wait(() => {
+    expect(1).toBe(1);
+  });
+});
 
 test('no assertions, no code', () => {});
 

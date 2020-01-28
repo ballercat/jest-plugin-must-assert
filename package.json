@@ -18,7 +18,7 @@
     "trailingComma": "es5"
   },
   "jest": {
-    "testEnvironment": "node",
+    "testEnvironment": "jsdom",
     "testRegex": "src/__tests__/.*|(\\.|/)(test|spec)\\.[jt]sx?$"
   },
   "devDependencies": {
@@ -28,7 +28,8 @@
     "jest-cli": "^24.7.1",
     "meow": "^5.0.0",
     "prettier": "^1.16.4",
-    "strip-ansi": "^5.2.0"
+    "strip-ansi": "^5.2.0",
+    "wait-for-expect": "^3.0.1"
   },
   "dependencies": {
     "stack-utils": "^1.0.2",
