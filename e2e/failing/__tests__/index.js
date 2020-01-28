@@ -4,7 +4,7 @@
  */
 const wait = require('wait-for-expect');
 
-test('this', () => {
+test('unhandled promise rejections fail tests', () => {
   Promise.resolve().then(() => {
     throw new Error('oops');
   });

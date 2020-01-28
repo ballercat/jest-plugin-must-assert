@@ -192,9 +192,22 @@ function patchJestAPI({
       // back to the origin of the ignored tasks
       .fork(Zone.longStackTraceZoneSpec);
 
-    currentZone = id;
+    const enter = () => (currentZone = id);
 
-    return [zone.wrap(hasDoneCallback ? callback : done => callback(done)), id];
+    return [
+      zone.wrap(
+        hasDoneCallback
+          ? done => {
+              enter();
+              return callback(done);
+            }
+          : () => {
+              enter();
+              return callback();
+            }
+      ),
+      id,
+    ];
   };
 
   /**
@@ -206,7 +219,7 @@ function patchJestAPI({
    * @return Function
    */
   const wrapTest = (fn, name) => {
-    let testMustAssert, unhandledError;
+    let testMustAssert, unhandledException;
     const hasDoneCallback = fn.length > 0;
 
     const recordUnhandledException = e => (unhandledException = e);

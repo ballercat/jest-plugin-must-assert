@@ -4,23 +4,6 @@ const wait = require('wait-for-expect');
 // A generous timeout as the e2e failing tests timeout in some cases (as intended)
 jest.setTimeout(10000);
 
-test.only('this', () => {
-  let x = 0;
-  setTimeout(() => {
-    x = 1;
-  }, 1);
-  Promise.resolve().then(() => {
-    throw new Error('oops');
-  });
-  return wait(() => {
-    expect(x).toBe(1);
-  }).then(() => {});
-});
-
-test.only('should pass', () => {
-  expect(1).toBe(1);
-});
-
 test('failing tests - node env', async () => {
   const results = await runJest('e2e/failing');
 
