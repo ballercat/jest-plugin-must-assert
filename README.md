@@ -102,10 +102,17 @@ patchJestAPI({
     }
     return true;
   },
+
   /**
    * Logger DI. Used by the internal methods to log warnings/errors. Should match console API.
    */
   logger,
+
+  /**
+   * Regex list of what functions should be REMOVED from the stack traces of cancelled tasks.
+   * These are the default values. Overwriting this option removes these values
+   */
+  ignoreStack = [/Zone/, /zone\.js/, /node_modules/],
 });
 ```
 
