@@ -1,4 +1,5 @@
 const runJest = require('../runJest');
+const wait = require('wait-for-expect');
 
 // A generous timeout as the e2e failing tests timeout in some cases (as intended)
 jest.setTimeout(10000);

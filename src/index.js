@@ -1,15 +1,33 @@
+/**
+ * Implementation of Must assert plugin
+ *
+ * @author  Arthur Buldauskas <arthurbuldauskas@gmail.com>
+ */
 const StackUtils = require('stack-utils');
-module.exports = patchJestAPI;
+const { getWrapper } = require('./wrap-test');
+const { getZones } = require('./zones');
 
-const EXPOSE_ERROR = Symbol('EXPOSE_ERROR');
-
+/**
+ * Responds to task invokations. Default implementation
+ *
+ * @throws
+ *
+ * @return Boolean Whether or not the task should be allowed to run
+ */
 function onInvokeTaskDefault({
+  // The zone ID which originated this task
   originZoneId,
+  // The current global zone ID currently executing
   currentZoneId,
+  // The name of the test from where this task originates
   testName,
+  // The type of the task being acted upon [micro || macro]Task
   taskType,
+  // Promise, setTimeout etc.
   taskSource,
 }) {
+  // Note that we do not use "testName" for this as they are not guaranteed to be
+  // unique
   if (originZoneId !== currentZoneId) {
     throw new Error(
       `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. See stack-trace for details.`
@@ -18,143 +36,35 @@ function onInvokeTaskDefault({
   return true;
 }
 
+/**
+ * Path Jest test API
+ *
+ * We will wrap every supported Jest method so that we can place every test
+ * that is declared with it's own Zone. Each test will have it's own zone, which
+ * will have a unique ID. There will be one global "current" zone ID, whenever an
+ * async event attempts to invoke a callback which is NOT from the current zone
+ * ID we will block it and log a warning.
+ *
+ * @return void
+ */
 function patchJestAPI({
+  // Set your own onInvoke task handler if you don't like the original behavior
   onInvokeTask = onInvokeTaskDefault,
+  // Logger override
   logger = console,
-  ignoreStack = [],
+  // Regex of what should be REMOVED from the stack traces of cancelled tasks
+  ignoreStack = [/Zone/, /zone\.js/, /node_modules/],
 }) {
-  const consoleMethods = Object.entries(global.console);
-  const restoreConsole = () =>
-    consoleMethods.forEach(([key, value]) => {
-      global.console[key] = value;
-    });
-
-  require('zone.js');
-  require('zone.js/dist/long-stack-trace-zone');
-  // NOTE: zone.js patches console methods, avoid that.
-  restoreConsole();
-
-  const stack = new StackUtils({
-    cwd: process.cwd(),
-    internals: StackUtils.nodeInternals()
-      .concat([/Zone/, /zone\.js/, /node_modules/])
-      .concat(ignoreStack),
+  const { enterZone, exitZone } = getZones({
+    onInvokeTask,
+    logger,
+    ignoreStack,
   });
-  // Zone sets itself as a global...
-  const Zone = global.Zone;
-  let currentZone = null;
-  let uniqueIdentifier = 0;
-  const uuid = () => ++uniqueIdentifier;
+  const wrapTest = getWrapper({ enterZone, exitZone });
 
-  const testNeedsAssertionCheck = () => {
-    // Some misconfigured test (eg overriding expect itself)
-    if (!(typeof expect !== 'undefined' && 'getState' in expect)) {
-      return false;
-    }
-    const state = expect.getState();
-    return (
-      typeof state.expectedAssertionsNumber !== 'number' &&
-      !state.isExpectingAssertions
-    );
-  };
-
-  const exitZone = () => (currentZone = null);
-  const enterZone = (callback, name, hasDoneCallback) => {
-    const id = uuid();
-    const zone = Zone.root
-      .fork({
-        name,
-        properties: {
-          id,
-        },
-        onHandleError(delegate, current, target, e) {
-          if (e && e[EXPOSE_ERROR]) {
-            logger.warn(`${e.message}\n\n${stack.clean(e.stack)}`);
-            return false;
-          }
-          throw e;
-        },
-        onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
-          let error;
-          let result = true;
-          try {
-            result = onInvokeTask({
-              originZoneId: current.get('id'),
-              currentZoneId: currentZone,
-              testName: name,
-              taskType: task.type,
-              taskSource: task.source,
-              logger: logger,
-            });
-          } catch (e) {
-            error = e;
-          }
-
-          if (error) {
-            error[EXPOSE_ERROR] = true;
-            error.task = task;
-            throw error;
-          }
-
-          if (!result) {
-            return;
-          }
-
-          return delegate.invokeTask(target, task, applyThis, applyArgs);
-        },
-      })
-      // We fork from the special stack-trace zone so that there is a trail leading
-      // back to the origin of the ignored tasks
-      .fork(Zone.longStackTraceZoneSpec);
-
-    currentZone = id;
-
-    return zone.wrap(hasDoneCallback ? callback : done => callback(done));
-  };
-
-  const wrapTest = (fn, name) => {
-    let testMustAssert;
-    const hasDoneCallback = fn.length > 0;
-
-    if (!hasDoneCallback) {
-      return () => {
-        const result = enterZone(fn, name, false)();
-
-        if (testNeedsAssertionCheck()) {
-          expect.hasAssertions();
-        }
-
-        if (
-          typeof result === 'object' &&
-          result != null &&
-          typeof result.then === 'function'
-        ) {
-          return result.then(exitZone, e => {
-            exitZone();
-            throw e;
-          });
-        }
-
-        exitZone();
-        return result;
-      };
-    }
-
-    return (doneOriginal, ...args) => {
-      const done = () => {
-        exitZone();
-        doneOriginal();
-      };
-      const result = enterZone(fn, name, true)(done, ...args);
-
-      if (testNeedsAssertionCheck()) {
-        expect.hasAssertions();
-      }
-
-      return result;
-    };
-  };
-
+  // TODO: Figure out a way to show the original test during errors instead of the
+  // wrapper below. AFAIK it's not doable unless we recompile the original fn and
+  // somehow append the extra checks...
   function enhanceJestImplementationWithAssertionCheck(jestTest) {
     return function ehanchedJestMehod(name, fn, timeout) {
       return jestTest(name, wrapTest(fn, name), timeout);
@@ -164,6 +74,7 @@ function patchJestAPI({
   // Create the enhanced version of the base test() method
   const enhancedTest = enhanceJestImplementationWithAssertionCheck(global.test);
 
+  // TODO: Support .each
   const donotpatch = ['each', 'skip', 'todo'];
 
   Object.keys(global.test).forEach(key => {
@@ -180,3 +91,8 @@ function patchJestAPI({
   global.fit = enhancedTest.only;
   global.test = enhancedTest;
 }
+
+// Default export
+//
+// The plugin does nothing unless this is invoked
+module.exports = patchJestAPI;
