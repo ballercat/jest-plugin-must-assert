@@ -1,6 +1,19 @@
+/**
+ * Zoning helpers
+ *
+ * @author Arthur Buldauskas<arthurbuldauskas@gmail.com>
+ */
 const StackUtils = require('stack-utils');
 
 const EXPOSE_ERROR = Symbol('EXPOSE_ERROR');
+
+// Globals
+// The current zone. Every time a test starts this changes
+let currentZone = null;
+
+// All zone ID should be unique
+let uniqueIdentifier = 0;
+const uuid = () => ++uniqueIdentifier;
 
 const getZones = ({ onInvokeTask, logger, ignoreStack }) => {
   // Requiring Zone libraries here ensures that we allow for users of the
@@ -27,12 +40,6 @@ const getZones = ({ onInvokeTask, logger, ignoreStack }) => {
 
   // Zone sets itself as a global, that's just how the library works
   const Zone = global.Zone;
-  // The current zone. Every time a test starts this changes
-  let currentZone = null;
-
-  // All zone ID should be unique
-  let uniqueIdentifier = 0;
-  const uuid = () => ++uniqueIdentifier;
 
   /**
    * Exit the current zone
