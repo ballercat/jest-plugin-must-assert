@@ -74,11 +74,10 @@ patchJestAPI({
    * @param {Object} options       Options for the handler (see below)
    *
    * Options:
-   * @param {Number} originTestId  The unique ID of the test where the task is oginating from
+   * @param {Number} originTestId  The unique ID of the test where the task is originating from
    * @param {Number} currentTestId The unique ID of the currently executing test
    * @param {String} testName      The name of the test which triggered this event
-   * @param {String} taskType      The type of task being invoked (micro/macro task)
-   * @param {String} taskSource    The source of the taks ("promise.then", "setTimeout" etc)
+   * @param {ZoneTask} task        The task being invoked (micro/macro task)
    * @param {Object} logger        The logger object (defaults to console)
    *
    * @throws {Error} Default: throws. This function _may_ throw an error instead of logging it if
@@ -90,14 +89,13 @@ patchJestAPI({
     originZoneId,
     currentZoneId,
     testName,
-    taskType,
-    taskSource,
+    task,
   }) {
     // This is the default implementation of onInvokeTask. The error thrown will
     // be displayed as a logger.warn with a cleaned up stack trace.
     if (originZoneId !== currentZoneId) {
       throw new Error(
-        `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. Ignoring`
+        `Test "${testName}" is attempting to invoke a ${task.type}(${task.source}) after test completion. See stack-trace for details.`
       );
     }
     return true;
