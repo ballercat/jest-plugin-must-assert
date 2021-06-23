@@ -23,10 +23,10 @@
   },
   "devDependencies": {
     "execa": "^1.0.0",
-    "jest": "^24.7.1",
-    "jest-circus": "^24.7.1",
-    "jest-cli": "^24.7.1",
-    "meow": "^5.0.0",
+    "jest": "^27.0.5",
+    "jest-circus": "^27.0.5",
+    "jest-cli": "^27.0.5",
+    "meow": "^10.0.1",
     "prettier": "^1.16.4",
     "strip-ansi": "^5.2.0",
     "wait-for-expect": "^3.0.1"
