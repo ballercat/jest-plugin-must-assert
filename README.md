@@ -20,6 +20,10 @@ leads to [assertions "leaking" accross different tests](https://github.com/faceb
 
 `npm i -D jest-plugin-must-assert`
 
+or
+
+`yarn add -D jest-plugin-must-assert`
+
 For default behavior, add the plugin to your setup files.
 
 ## Supported Jest Environments
