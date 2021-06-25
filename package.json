@@ -6,6 +6,9 @@
   "scripts": {
     "test": "jest"
   },
+  "engines": {
+    "node": ">= 12.17.0"
+  },
   "keywords": [
     "jest",
     "test",
