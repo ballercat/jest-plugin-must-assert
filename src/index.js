@@ -3,7 +3,6 @@
  *
  * @author  Arthur Buldauskas <arthurbuldauskas@gmail.com>
  */
-const StackUtils = require('stack-utils');
 const { getWrapper } = require('./wrap-test');
 const { getZones } = require('./zones');
 
@@ -21,23 +20,21 @@ function onInvokeTaskDefault({
   currentZoneId,
   // The name of the test from where this task originates
   testName,
-  // The type of the task being acted upon [micro || macro]Task
-  taskType,
-  // Promise, setTimeout etc.
-  taskSource,
+  // The task being invoked
+  task,
 }) {
   // Note that we do not use "testName" for this as they are not guaranteed to be
   // unique
   if (originZoneId !== currentZoneId) {
     throw new Error(
-      `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. See stack-trace for details.`
+      `Test "${testName}" is attempting to invoke a ${task.type}(${task.source}) after test completion. See stack-trace for details.`
     );
   }
   return true;
 }
 
 /**
- * Path Jest test API
+ * Patch Jest test API
  *
  * We will wrap every supported Jest method so that we can place every test
  * that is declared with it's own Zone. Each test will have it's own zone, which
@@ -66,7 +63,7 @@ function patchJestAPI({
   // wrapper below. AFAIK it's not doable unless we recompile the original fn and
   // somehow append the extra checks...
   function enhanceJestImplementationWithAssertionCheck(jestTest) {
-    return function ehanchedJestMehod(name, fn, timeout) {
+    return function enhancedJestMethod(name, fn, timeout) {
       return jestTest(name, wrapTest(fn, name), timeout);
     };
   }

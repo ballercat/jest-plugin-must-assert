@@ -87,8 +87,7 @@ const getZones = ({ onInvokeTask, logger, ignoreStack }) => {
               originZoneId: current.get('id'),
               currentZoneId: currentZone,
               testName: name,
-              taskType: task.type,
-              taskSource: task.source,
+              task: task,
               logger: logger,
             });
           } catch (e) {
