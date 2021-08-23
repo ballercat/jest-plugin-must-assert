@@ -15,7 +15,7 @@ test('failing tests - node env', async () => {
   expect(results.json.numFailedTests).toBe(totalTestsExecuted);
 });
 
-test('failing tests - jsdom env', async () => {
+test.only('failing tests - jsdom env', async () => {
   const results = await runJest('e2e/failing-jsdom');
 
   const totalTestsExecuted =
