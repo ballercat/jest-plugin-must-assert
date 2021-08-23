@@ -43,7 +43,7 @@ test('assertions in missed macro-tasks', () => {
   }, 100);
 });
 
-test.only('assertions after done() callback', done => {
+test('assertions after done() callback', done => {
   setTimeout(() => {
     done();
     setTimeout(() => {

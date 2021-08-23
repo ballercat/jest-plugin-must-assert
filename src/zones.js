@@ -83,7 +83,8 @@ const getZones = ({ onInvokeTask, logger, ignoreStack }) => {
           let error;
           let result = true;
 
-          function getLongStackTrace() {
+          // Exposes the stack trace associated with the task
+          function getStackTrace() {
             let stack;
             try {
               throw new Error();
@@ -107,7 +108,7 @@ const getZones = ({ onInvokeTask, logger, ignoreStack }) => {
               testName: name,
               task,
               logger: logger,
-              getLongStackTrace,
+              getStackTrace,
             });
           } catch (e) {
             error = e;

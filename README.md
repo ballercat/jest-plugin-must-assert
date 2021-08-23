@@ -78,12 +78,14 @@ patchJestAPI({
    * @param {Object} options       Options for the handler (see below)
    *
    * Options:
-   * @param {Number} originTestId  The unique ID of the test where the task is oginating from
-   * @param {Number} currentTestId The unique ID of the currently executing test
-   * @param {String} testName      The name of the test which triggered this event
-   * @param {String} taskType      The type of task being invoked (micro/macro task)
-   * @param {String} taskSource    The source of the taks ("promise.then", "setTimeout" etc)
-   * @param {Object} logger        The logger object (defaults to console)
+   * @param {Number}   originTestId  The unique ID of the test where the task is oginating from
+   * @param {Number}   currentTestId The unique ID of the currently executing test
+   * @param {String}   testName      The name of the test which triggered this event
+   * @param {Object}   task          The task which is about to be invoked
+   * @param {String}   task.type     The type of task being invoked (micro/macro task)
+   * @param {String}   task.source   The source of the taks ("promise.then", "setTimeout" etc)
+   * @param {Object}   logger        The logger object (defaults to console)
+   * @param {Function} getStackTrace Returns the stack-trace of the stack
    *
    * @throws {Error} Default: throws. This function _may_ throw an error instead of logging it if
    *                 you would like a stack trace back to the origin of the task being ignored.

@@ -23,7 +23,8 @@ function onInvokeTaskDefault({
   testName,
   // The type of the task being acted upon [micro || macro]Task
   task,
-  getLongStackTrace,
+  // Get the stack trace associated wit the task
+  getStackTrace,
 }) {
   // Note that we do not use "testName" for this as they are not guaranteed to be
   // unique
@@ -31,7 +32,6 @@ function onInvokeTaskDefault({
     const error = new Error(
       `Test "${testName}" is attempting to invoke a ${task.type}(${task.source}) after test completion. See stack-trace for details.`
     );
-    console.log(getLongStackTrace());
     throw error;
   }
   return true;
