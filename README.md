@@ -96,14 +96,13 @@ patchJestAPI({
     originZoneId,
     currentZoneId,
     testName,
-    taskType,
-    taskSource,
+    task,
   }) {
     // This is the default implementation of onInvokeTask. The error thrown will
     // be displayed as a logger.warn with a cleaned up stack trace.
     if (originZoneId !== currentZoneId) {
       throw new Error(
-        `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. Ignoring`
+        `Test "${testName}" is attempting to invoke a ${task.type}(${task.source}) after test completion. Ignoring`
       );
     }
     return true;
