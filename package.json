@@ -4,7 +4,8 @@
   "description": "Jest plugin for async tests",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "harness": "node test-harness.js"
   },
   "engines": {
     "node": ">= 12.17.0"

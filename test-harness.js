@@ -2,7 +2,7 @@
  * This script is used to run the e2e folder tests directly to get realtime
  * feedback.
  */
-const runCLI = require('jest-cli').runCLI;
+const runCLI = require('jest').runCLI;
 
 const [env = 'node'] = process.argv.slice(2);
 const projectmap = {

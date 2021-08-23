@@ -22,16 +22,17 @@ function onInvokeTaskDefault({
   // The name of the test from where this task originates
   testName,
   // The type of the task being acted upon [micro || macro]Task
-  taskType,
-  // Promise, setTimeout etc.
-  taskSource,
+  task,
+  // Get the stack trace associated wit the task
+  getStackTrace,
 }) {
   // Note that we do not use "testName" for this as they are not guaranteed to be
   // unique
   if (originZoneId !== currentZoneId) {
-    throw new Error(
-      `Test "${testName}" is attempting to invoke a ${taskType}(${taskSource}) after test completion. See stack-trace for details.`
+    const error = new Error(
+      `Test "${testName}" is attempting to invoke a ${task.type}(${task.source}) after test completion. See stack-trace for details.`
     );
+    throw error;
   }
   return true;
 }

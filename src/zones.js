@@ -82,14 +82,33 @@ const getZones = ({ onInvokeTask, logger, ignoreStack }) => {
         onInvokeTask(delegate, current, target, task, applyThis, applyArgs) {
           let error;
           let result = true;
+
+          // Exposes the stack trace associated with the task
+          function getStackTrace() {
+            let stack;
+            try {
+              throw new Error();
+            } catch (e) {
+              e.task = task;
+              Zone.longStackTraceZoneSpec.onHandleError(
+                delegate,
+                current,
+                target,
+                e
+              );
+              stack = e.stack;
+            }
+            return stack;
+          }
+
           try {
             result = onInvokeTask({
               originZoneId: current.get('id'),
               currentZoneId: currentZone,
               testName: name,
-              taskType: task.type,
-              taskSource: task.source,
+              task,
               logger: logger,
+              getStackTrace,
             });
           } catch (e) {
             error = e;
